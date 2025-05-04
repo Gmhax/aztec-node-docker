@@ -1,8 +1,15 @@
 #!/bin/bash
 
-echo "🟢 Starting Aztec Node Setup..."
+# Install Aztec tools at runtime
+echo "📦 Installing Aztec CLI tools..."
+curl -s https://install.aztec.network | bash
+export PATH="/root/.aztec/bin:${PATH}"
 
-# Prompt user for inputs
+# Update Aztec to alpha-testnet config
+echo "🔄 Running aztec-up alpha-testnet..."
+aztec-up alpha-testnet
+
+# Prompt functions
 prompt_input() {
     local prompt=$1
     local var_name=$2
@@ -20,6 +27,7 @@ prompt_sensitive() {
     eval $var_name="${input:-$default}"
 }
 
+# Get user input
 prompt_input "Enter Sepolia RPC URL" SEPOLIA_RPC "https://rpc.sepolia.org"
 prompt_input "Enter Beacon RPC URL" BEACON_RPC "https://beacon.sepolia.dev"
 prompt_input "Enter your wallet address (0x...)" WALLET_ADDRESS ""
@@ -30,16 +38,15 @@ if [ -z "$WALLET_ADDRESS" ] || [ -z "$PRIVATE_KEY" ]; then
     exit 1
 fi
 
+# Get public IP
 PUBLIC_IP=$(curl -s ipv4.icanhazip.com)
 if [ -z "$PUBLIC_IP" ]; then
     echo "❌ Error: Could not retrieve public IP."
     exit 1
 fi
 
-echo "🌐 Public IP: $PUBLIC_IP"
-echo "🚀 Launching Aztec node..."
-
-# Run in background
+# Start Aztec node
+echo "🚀 Starting Aztec node..."
 screen -dmS aztec bash -c "aztec start --node --archiver --sequencer \
   --network alpha-testnet \
   --l1-rpc-urls $SEPOLIA_RPC \
@@ -49,5 +56,5 @@ screen -dmS aztec bash -c "aztec start --node --archiver --sequencer \
   --p2p.p2pIp $PUBLIC_IP \
   --p2p.maxTxPoolSize 1000000000"
 
-echo "✅ Node started inside screen session named 'aztec'. Use: screen -r aztec"
+# Keep container running
 tail -f /dev/null
