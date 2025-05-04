@@ -1,4 +1,8 @@
 #!/bin/bash
+
+echo "🟢 Starting Aztec Node Setup..."
+
+# Prompt user for inputs
 prompt_input() {
     local prompt=$1
     local var_name=$2
@@ -6,6 +10,7 @@ prompt_input() {
     read -p "$prompt [$default]: " input
     eval $var_name="${input:-$default}"
 }
+
 prompt_sensitive() {
     local prompt=$1
     local var_name=$2
@@ -14,19 +19,27 @@ prompt_sensitive() {
     echo
     eval $var_name="${input:-$default}"
 }
+
 prompt_input "Enter Sepolia RPC URL" SEPOLIA_RPC "https://rpc.sepolia.org"
 prompt_input "Enter Beacon RPC URL" BEACON_RPC "https://beacon.sepolia.dev"
 prompt_input "Enter your wallet address (0x...)" WALLET_ADDRESS ""
 prompt_sensitive "Enter your private key (0x...)" PRIVATE_KEY ""
+
 if [ -z "$WALLET_ADDRESS" ] || [ -z "$PRIVATE_KEY" ]; then
-    echo "Error: Wallet address and private key are required."
+    echo "❌ Error: Wallet address and private key are required."
     exit 1
-}
+fi
+
 PUBLIC_IP=$(curl -s ipv4.icanhazip.com)
 if [ -z "$PUBLIC_IP" ]; then
-    echo "Error: Could not retrieve public IP."
+    echo "❌ Error: Could not retrieve public IP."
     exit 1
-}
+fi
+
+echo "🌐 Public IP: $PUBLIC_IP"
+echo "🚀 Launching Aztec node..."
+
+# Run in background
 screen -dmS aztec bash -c "aztec start --node --archiver --sequencer \
   --network alpha-testnet \
   --l1-rpc-urls $SEPOLIA_RPC \
@@ -35,4 +48,6 @@ screen -dmS aztec bash -c "aztec start --node --archiver --sequencer \
   --sequencer.coinbase $WALLET_ADDRESS \
   --p2p.p2pIp $PUBLIC_IP \
   --p2p.maxTxPoolSize 1000000000"
+
+echo "✅ Node started inside screen session named 'aztec'. Use: screen -r aztec"
 tail -f /dev/null
